@@ -1,5 +1,4 @@
 import streamlit as st
-from collections import Counter
 
 # Dinner package details
 dinner_info = {
@@ -130,8 +129,31 @@ for name, details in dinner_info.items():
 
 table_html += "</tbody></table>"
 
-# Display HTML table
-st.markdown(table_html, unsafe_allow_html=True)
+# CSS for table styling
+css = """
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    img {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+</style>
+"""
+
+# Display CSS and HTML table
+st.markdown(css + table_html, unsafe_allow_html=True)
 
 # Rest of the app (voting section)...
 # Note: Voting code is the same as provided in previous examples.
