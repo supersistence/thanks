@@ -1,6 +1,19 @@
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+from collections import Counter
 
-# Dinner package details with simplified pie choices
+# List of dinner packages and their details
+dinner_packages = [
+    "Traditional Turkey Dinner",
+    "Traditional Turkey Breast Dinner",
+    "Orange Glazed Spiral Cut Ham Dinner",
+    "Boneless Ribeye Roast Dinner",
+    "Braised Brisket Dinner",
+    "Beef Wellington Dinner"
+]
+
+# Dictionary of dinner package details, including sides, pie options, and image URLs
 dinner_info = {
     "Traditional Turkey Dinner": {
         "Potatoes": "Mashed",
@@ -88,77 +101,87 @@ dinner_info = {
     }
 }
 
-# Display table with HTML
+# Convert dinner info to a DataFrame for easy display
+dinner_df = pd.DataFrame(dinner_info).T
+
+# Display the table with sides and images
 st.title("Holiday Dinner Package Comparison")
-st.write("Compare dinner packages by sides and view an image of each option.")
+st.write("Compare dinner packages by sides and see an image of each option.")
+st.dataframe(dinner_df.drop(columns=["Image URL"]))  # Display the data without image URLs
 
-# HTML table structure
-table_html = """
-<table>
-    <thead>
-        <tr>
-            <th>Package</th>
-            <th>Image</th>
-            <th>Potatoes</th>
-            <th>Green Beans Almondine</th>
-            <th>Dinner Rolls</th>
-            <th>Herb Stuffing</th>
-            <th>Candied Yams</th>
-            <th>Roasted Root Vegetables</th>
-            <th>Cranberry Relish</th>
-            <th>Turkey Gravy</th>
-            <th>Brisket Sauce</th>
-            <th>Creamed Horseradish</th>
-            <th>Pie</th>
-        </tr>
-    </thead>
-    <tbody>
-"""
+# Display images and titles in two columns
+st.header("Dinner Packages with Images")
+cols = st.columns(2)  # Create two columns
 
-# Populate table rows with data
-for name, details in dinner_info.items():
-    table_html += f"""
-    <tr>
-        <td>{name}</td>
-        <td><img src="{details['Image URL']}" width="50"/></td>
-        <td>{details['Potatoes']}</td>
-        <td>{details['Green Beans Almondine']}</td>
-        <td>{details['Dinner Rolls']}</td>
-        <td>{details['Herb Stuffing']}</td>
-        <td>{details['Candied Yams']}</td>
-        <td>{details['Roasted Root Vegetables']}</td>
-        <td>{details['Cranberry Relish']}</td>
-        <td>{details['Turkey Gravy']}</td>
-        <td>{details['Brisket Sauce']}</td>
-        <td>{details['Creamed Horseradish']}</td>
-        <td>{details['Pie']}</td>
-    </tr>
-    """
+for idx, (dinner, details) in enumerate(dinner_info.items()):
+    with cols[idx % 2]:  # Alternate columns
+        st.subheader(dinner)
+        st.image(details["Image URL"], caption=dinner, width=150)  # Set image width to 150 pixels
 
-table_html += "</tbody></table>"
+# Voting section
+st.header("Rank Your Top Three Choices")
+if "has_voted" not in st.session_state:
+    st.session_state.has_voted = False
+if "votes" not in st.session_state:
+    st.session_state.votes = []
 
-# CSS for table styling
-css = """
-<style>
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    th, td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: center;
-    }
-    th {
-        background-color: #f2f2f2;
-    }
-    img {
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-    }
-</style>
-"""
+if not st.session_state.has_voted:
+    choices = st.multiselect("Select your top three dinner packages in order of preference:", dinner_packages, [])
 
-# Display CSS and HTML table
-st.markdown(css + table_html, unsafe_allow_html=True)
+    if len(choices) == 3:
+        if st.button("Submit Vote"):
+            st.session_state.votes.append(choices)
+            st.session_state.has_voted = True
+            st.success("Your vote has been submitted!")
+    elif len(choices) > 3:
+        st.warning("Please select exactly three options.")
+else:
+    st.info("You have already voted. Thank you for participating!")
+
+# Single Transferable Voting (STV) calculation
+def stv_winner(votes, dinner_packages):
+    counts = Counter()
+    active_candidates = set(dinner_packages)
+    
+    # First preferences count
+    for vote in votes:
+        counts[vote[0]] += 1
+    
+    while True:
+        # Check if any candidate has more than half of the votes
+        for candidate, count in counts.items():
+            if count > len(votes) / 2:
+                return candidate
+        
+        # Find the candidate with the fewest votes
+        min_candidate = min(counts, key=counts.get)
+        active_candidates.remove(min_candidate)
+        
+        # Redistribute votes from the eliminated candidate
+        new_counts = Counter()
+        for vote in votes:
+            for candidate in vote:
+                if candidate in active_candidates:
+                    new_counts[candidate] += 1
+                    break
+        counts = new_counts
+
+if st.button("Calculate Winner"):
+    if st.session_state.votes:
+        winner = stv_winner(st.session_state.votes, dinner_packages)
+        st.success(f"The winning dinner package is: {winner}")
+        
+        # Count total first-choice votes for each dinner package
+        total_votes = Counter([vote[0] for vote in st.session_state.votes])
+        
+        # Prepare data for bar chart
+        results_df = pd.DataFrame.from_dict(total_votes, orient='index', columns=["Votes"])
+        results_df = results_df.reindex(dinner_packages).fillna(0)  # Ensure all packages are included
+        
+        # Display bar chart of votes
+        st.bar_chart(results_df)
+        
+        # Display total votes cast
+        st.write(f"Total Votes Cast: {len(st.session_state.votes)}")
+    else:
+        st.warning("No votes have been cast yet.")
