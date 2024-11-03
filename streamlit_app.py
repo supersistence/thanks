@@ -1,8 +1,8 @@
 import streamlit as st
-from collections import Counter
 import pandas as pd
+from collections import Counter
 
-# List of dinner packages
+# List of dinner packages and their details
 dinner_packages = [
     "Traditional Turkey Dinner",
     "Traditional Turkey Breast Dinner",
@@ -12,55 +12,111 @@ dinner_packages = [
     "Beef Wellington Dinner"
 ]
 
-# Information about each dinner package with the correct image URLs
+# Dictionary of dinner package details, including sides and image URLs
 dinner_info = {
     "Traditional Turkey Dinner": {
-        "description": "Mashed potatoes, herb stuffing, candied yams, green beans almondine, turkey gravy, cranberry relish, choice of pie.",
-        "image_url": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/7419baea05bf4b85adc4354a85aef957_540w.jpg"
+        "Potatoes": "Mashed",
+        "Green Beans Almondine": "✓",
+        "Dinner Rolls": "✓",
+        "Herb Stuffing": "✓",
+        "Candied Yams": "✓",
+        "Roasted Root Vegetables": "",
+        "Cranberry Relish": "✓",
+        "Turkey Gravy": "✓",
+        "Brisket Sauce": "",
+        "Creamed Horseradish": "",
+        "Image URL": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/7419baea05bf4b85adc4354a85aef957_540w.jpg"
     },
     "Traditional Turkey Breast Dinner": {
-        "description": "Mashed potatoes, herb stuffing, candied yams, green beans almondine, turkey gravy, cranberry relish, choice of pie.",
-        "image_url": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/f3a68ba6ec4343988983f697da3aa2a8_540w.jpg"
+        "Potatoes": "Mashed",
+        "Green Beans Almondine": "✓",
+        "Dinner Rolls": "✓",
+        "Herb Stuffing": "✓",
+        "Candied Yams": "✓",
+        "Roasted Root Vegetables": "",
+        "Cranberry Relish": "✓",
+        "Turkey Gravy": "✓",
+        "Brisket Sauce": "",
+        "Creamed Horseradish": "",
+        "Image URL": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/f3a68ba6ec4343988983f697da3aa2a8_540w.jpg"
     },
     "Orange Glazed Spiral Cut Ham Dinner": {
-        "description": "Scalloped potatoes, candied yams, green beans almondine, cranberry relish, choice of pie.",
-        "image_url": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/077cf99592614a4f9cf18c5a38202896_540w.jpg"
+        "Potatoes": "Scalloped",
+        "Green Beans Almondine": "✓",
+        "Dinner Rolls": "✓",
+        "Herb Stuffing": "",
+        "Candied Yams": "✓",
+        "Roasted Root Vegetables": "",
+        "Cranberry Relish": "✓",
+        "Turkey Gravy": "",
+        "Brisket Sauce": "",
+        "Creamed Horseradish": "",
+        "Image URL": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/077cf99592614a4f9cf18c5a38202896_540w.jpg"
     },
     "Boneless Ribeye Roast Dinner": {
-        "description": "Scalloped potatoes, green beans almondine, creamed horseradish, apple pie.",
-        "image_url": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/7315c3ac09694746ab1ac1f485784a35_540w.jpg"
+        "Potatoes": "Scalloped",
+        "Green Beans Almondine": "✓",
+        "Dinner Rolls": "✓",
+        "Herb Stuffing": "",
+        "Candied Yams": "",
+        "Roasted Root Vegetables": "",
+        "Cranberry Relish": "",
+        "Turkey Gravy": "",
+        "Brisket Sauce": "",
+        "Creamed Horseradish": "✓",
+        "Image URL": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/7315c3ac09694746ab1ac1f485784a35_540w.jpg"
     },
     "Braised Brisket Dinner": {
-        "description": "Potato latkes, roasted root vegetables, green beans almondine, brisket sauce, caramel apple pie.",
-        "image_url": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/b815f8ce6c474441ada34503f63fd3f6_540w.jpg"
+        "Potatoes": "Latkes",
+        "Green Beans Almondine": "✓",
+        "Dinner Rolls": "✓",
+        "Herb Stuffing": "",
+        "Candied Yams": "",
+        "Roasted Root Vegetables": "✓",
+        "Cranberry Relish": "",
+        "Turkey Gravy": "",
+        "Brisket Sauce": "✓",
+        "Creamed Horseradish": "",
+        "Image URL": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/b815f8ce6c474441ada34503f63fd3f6_540w.jpg"
     },
     "Beef Wellington Dinner": {
-        "description": "Scalloped potatoes, green beans almondine, apple pie.",
-        "image_url": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/9d03a461727e4fa6a21858b15873fcea_540w.jpg"
+        "Potatoes": "Scalloped",
+        "Green Beans Almondine": "✓",
+        "Dinner Rolls": "✓",
+        "Herb Stuffing": "",
+        "Candied Yams": "",
+        "Roasted Root Vegetables": "",
+        "Cranberry Relish": "",
+        "Turkey Gravy": "",
+        "Brisket Sauce": "",
+        "Creamed Horseradish": "",
+        "Image URL": "https://az727718.vo.msecnd.net/cfff44f0457b41e38cf9a0da89949200/images/9d03a461727e4fa6a21858b15873fcea_540w.jpg"
     }
 }
 
-# Display dinner options
-st.title("Holiday Dinner Package Selection")
-st.write("Learn about each dinner package and rank your top three choices!")
+# Convert dinner info to a DataFrame for easy display
+dinner_df = pd.DataFrame(dinner_info).T
 
+# Display the table with sides and images
+st.title("Holiday Dinner Package Comparison")
+st.write("Compare dinner packages by sides and see an image of each option.")
+st.dataframe(dinner_df.drop(columns=["Image URL"]))  # Display the data without image URLs
+
+# Display images separately below the table
 for dinner, details in dinner_info.items():
     st.subheader(dinner)
-    st.write(details["description"])
-    st.image(details["image_url"], use_column_width=True)
+    st.image(details["Image URL"], caption=dinner, use_column_width=True)
 
-# Check if the user has already voted
+# Voting section
+st.header("Rank Your Top Three Choices")
 if "has_voted" not in st.session_state:
     st.session_state.has_voted = False
 if "votes" not in st.session_state:
     st.session_state.votes = []
 
-# Ballot section
-st.header("Rank Your Top Three Choices")
 if not st.session_state.has_voted:
     choices = st.multiselect("Select your top three dinner packages in order of preference:", dinner_packages, [])
 
-    # Ensure exactly three choices
     if len(choices) == 3:
         if st.button("Submit Vote"):
             st.session_state.votes.append(choices)
@@ -70,10 +126,6 @@ if not st.session_state.has_voted:
         st.warning("Please select exactly three options.")
 else:
     st.info("You have already voted. Thank you for participating!")
-
-# Show current votes (for debugging or viewing purposes)
-if st.checkbox("Show all votes"):
-    st.write(st.session_state.votes)
 
 # Single Transferable Voting (STV) calculation
 def stv_winner(votes, dinner_packages):
