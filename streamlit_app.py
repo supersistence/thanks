@@ -105,7 +105,7 @@ dinner_info = {
 dinner_df = pd.DataFrame(dinner_info).T
 
 # Display the table with sides and images
-st.title("Holiday Dinners Package Comparison")
+st.title("Holiday Dinner Package Comparison")
 st.write("Compare dinner packages by sides and see an image of each option.")
 st.dataframe(dinner_df.drop(columns=["Image URL"]))  # Display the data without image URLs
 
