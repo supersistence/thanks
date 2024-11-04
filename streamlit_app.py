@@ -164,53 +164,109 @@ else:
     st.image("voting wrong.png", caption="We hope your voting experience was satisfactory!")
 
 # Calculate results from Google Sheets data
+# def calculate_votes():
+#     votes = sheet.get_all_records()  # Retrieve all votes from the sheet
+#     ranked_votes = [[vote["First Vote"], vote["Second Vote"], vote["Third Vote"]] for vote in votes]
+#     return stv_winner(ranked_votes, dinner_packages)
+
+# def stv_winner(ranked_votes, candidates):
+#     active_candidates = set(candidates)
+    
+#     while True:
+#         counts = Counter(vote[0] for vote in ranked_votes if vote[0] in active_candidates)
+#         total_votes = sum(counts.values())
+        
+#         for candidate, count in counts.items():
+#             if count > total_votes / 2:
+#                 return candidate  # Winner found
+
+#         min_candidate = min(counts, key=counts.get)
+#         active_candidates.remove(min_candidate)
+        
+#         new_ranked_votes = []
+#         for vote in ranked_votes:
+#             new_vote = [c for c in vote if c in active_candidates]
+#             if new_vote:
+#                 new_ranked_votes.append(new_vote)
+        
+#         ranked_votes = new_ranked_votes
+        
+#         if len(active_candidates) == 1:
+#             return list(active_candidates)[0]
+
+# if st.button("Calculate Winner"):
+#     if sheet.row_count > 1:  # Check if any votes have been cast
+#         winner = calculate_votes()
+#         st.success(f"The winning dinner package is: {winner}")
+        
+#         # Display first-choice votes for each candidate
+#         votes = sheet.get_all_records()
+#         all_votes = [vote["First Vote"] for vote in votes]
+#         first_choice_counts = Counter(all_votes)
+        
+#         results_df = pd.DataFrame.from_dict(first_choice_counts, orient='index', columns=["Votes"])
+#         results_df = results_df.reindex(dinner_packages).fillna(0).infer_objects(copy=False)
+        
+#         st.bar_chart(results_df)
+#         st.write(f"Total Votes Cast: {len(votes)}")
+#     else:
+#         st.warning("No votes have been cast yet.")
+
+# Assuming calculate_votes() returns the final count of each candidate after STV redistribution
 def calculate_votes():
     votes = sheet.get_all_records()  # Retrieve all votes from the sheet
     ranked_votes = [[vote["First Vote"], vote["Second Vote"], vote["Third Vote"]] for vote in votes]
-    return stv_winner(ranked_votes, dinner_packages)
+    final_counts = stv_winner(ranked_votes, dinner_packages)
+    return final_counts
 
 def stv_winner(ranked_votes, candidates):
     active_candidates = set(candidates)
+    rounds = []  # To track vote counts in each round
     
     while True:
         counts = Counter(vote[0] for vote in ranked_votes if vote[0] in active_candidates)
         total_votes = sum(counts.values())
         
+        # Store round results for charting later
+        rounds.append(dict(counts))
+
+        # Check if any candidate has more than half the votes
         for candidate, count in counts.items():
             if count > total_votes / 2:
-                return candidate  # Winner found
+                return counts  # Return final count after candidate wins
 
+        # Eliminate candidate with fewest votes
         min_candidate = min(counts, key=counts.get)
         active_candidates.remove(min_candidate)
-        
+
+        # Redistribute votes
         new_ranked_votes = []
         for vote in ranked_votes:
             new_vote = [c for c in vote if c in active_candidates]
             if new_vote:
                 new_ranked_votes.append(new_vote)
-        
         ranked_votes = new_ranked_votes
-        
+
+        # Check for last remaining candidate (tie-breaker)
         if len(active_candidates) == 1:
-            return list(active_candidates)[0]
+            return counts
 
 if st.button("Calculate Winner"):
     if sheet.row_count > 1:  # Check if any votes have been cast
-        winner = calculate_votes()
-        st.success(f"The winning dinner package is: {winner}")
+        final_counts = calculate_votes()
         
-        # Display first-choice votes for each candidate
-        votes = sheet.get_all_records()
-        all_votes = [vote["First Vote"] for vote in votes]
-        first_choice_counts = Counter(all_votes)
-        
-        results_df = pd.DataFrame.from_dict(first_choice_counts, orient='index', columns=["Votes"])
+        # Display the final outcome of the STV voting
+        results_df = pd.DataFrame.from_dict(final_counts, orient='index', columns=["Final Votes"])
         results_df = results_df.reindex(dinner_packages).fillna(0).infer_objects(copy=False)
         
+        st.success(f"The winning dinner package is: {results_df.idxmax()[0]}")
         st.bar_chart(results_df)
-        st.write(f"Total Votes Cast: {len(votes)}")
+    
     else:
         st.warning("No votes have been cast yet.")
+
+
+
 
 # STV Explanation Display
 st.title("Single Transferable Vote (STV): Dinner Edition")
