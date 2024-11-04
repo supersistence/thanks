@@ -119,7 +119,7 @@ dinner_info = {
 dinner_df = pd.DataFrame(dinner_info).T
 
 # header image
-st.image("/workspaces/thanks/turkey-vote.webp")
+st.image("turkey-vote.webp")
 
 
 # Display the table with sides and images
@@ -161,7 +161,7 @@ if not st.session_state.has_voted:
         st.warning("Please select exactly three options.")
 else:
     st.info("You have already voted. Thank you for participating!")
-    st.image("/workspaces/thanks/voting wrong.png", caption="We hope your voting experience was satisfactory!")
+    st.image("voting wrong.png", caption="We hope your voting experience was satisfactory!")
 
 # Calculate results from Google Sheets data
 def calculate_votes():
