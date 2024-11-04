@@ -119,7 +119,7 @@ dinner_info = {
 dinner_df = pd.DataFrame(dinner_info).T
 
 # header image
-st.image("turkey-vote.webp")
+st.image("turkey-vote.webp", width=200)
 
 
 # Display the table with sides and images
