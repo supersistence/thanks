@@ -254,11 +254,13 @@ def stv_winner(ranked_votes, candidates):
 if st.button("Calculate Winner"):
     if sheet.row_count > 1:  # Check if any votes have been cast
         final_counts = calculate_votes()
-        
+        votes = sheet.get_all_records()
+
         # Display the final outcome of the STV voting
         results_df = pd.DataFrame.from_dict(final_counts, orient='index', columns=["Final Votes"])
         results_df = results_df.reindex(dinner_packages).fillna(0).infer_objects(copy=False)
         
+        st.write(f"Total Votes Cast: {len(votes)}")
         st.success(f"The winning dinner package is: {results_df.idxmax()[0]}")
         st.bar_chart(results_df)
     
