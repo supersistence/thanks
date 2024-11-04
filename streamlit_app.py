@@ -1,7 +1,21 @@
 import streamlit as st
 import pandas as pd
+import json
 import matplotlib.pyplot as plt
 from collections import Counter
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# Google Sheets setup
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
+         "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+#credentials = ServiceAccountCredentials.from_json_keyfile_name("/workspaces/thanks/thanks-vote-440718-8020ffdbe27a.json", scope)
+credentials_info = json.loads(st.secrets["GOOGLE_SERVICE_ACCOUNT"])
+credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_info, scope)
+client = gspread.authorize(credentials)
+
+# Open the Google Sheet (replace with your own Google Sheet ID)
+sheet = client.open_by_key("1_0Xil-STpEyo5MdYz7Lz4g1Qyay51y-neSDvpZBgOgY").sheet1
 
 # List of dinner packages and their details
 dinner_packages = [
@@ -104,10 +118,14 @@ dinner_info = {
 # Convert dinner info to a DataFrame for easy display
 dinner_df = pd.DataFrame(dinner_info).T
 
+# header image
+st.image("/workspaces/thanks/turkey-vote.webp")
+
+
 # Display the table with sides and images
 st.title("Holiday Dinner Package Comparison")
 st.write("Compare dinner packages by sides and see an image of each option.")
-st.dataframe(dinner_df.drop(columns=["Image URL"]))  # Display the data without image URLs
+st.dataframe(dinner_df.drop(columns=["Image URL"]),use_container_width=True)  # Display the data without image URLs
 
 # Display images and titles in two columns
 st.header("Dinner Packages with Images")
@@ -118,70 +136,90 @@ for idx, (dinner, details) in enumerate(dinner_info.items()):
         st.subheader(dinner)
         st.image(details["Image URL"], caption=dinner, width=150)  # Set image width to 150 pixels
 
-# Voting section
+
+# Function to store votes in Google Sheets
+def store_vote(vote):
+    sheet.append_row(vote)
+
+
+# Voting section with improved instructions
 st.header("Rank Your Top Three Choices")
+st.write("Select exactly three dinner packages in order of preference and submit your vote.")
+
 if "has_voted" not in st.session_state:
     st.session_state.has_voted = False
-if "votes" not in st.session_state:
-    st.session_state.votes = []
 
 if not st.session_state.has_voted:
-    choices = st.multiselect("Select your top three dinner packages in order of preference:", dinner_packages, [])
+    choices = st.multiselect("Select your top three dinner packages:", dinner_packages)
 
     if len(choices) == 3:
         if st.button("Submit Vote"):
-            st.session_state.votes.append(choices)
+            store_vote(choices)  # Store the vote in Google Sheets
             st.session_state.has_voted = True
             st.success("Your vote has been submitted!")
     elif len(choices) > 3:
         st.warning("Please select exactly three options.")
 else:
     st.info("You have already voted. Thank you for participating!")
+    st.image("/workspaces/thanks/voting wrong.png", caption="We hope your voting experience was satisfactory!")
 
-# Single Transferable Voting (STV) calculation
-def stv_winner(votes, dinner_packages):
-    counts = Counter()
-    active_candidates = set(dinner_packages)
-    
-    # First preferences count
-    for vote in votes:
-        counts[vote[0]] += 1
+# Calculate results from Google Sheets data
+def calculate_votes():
+    votes = sheet.get_all_records()  # Retrieve all votes from the sheet
+    ranked_votes = [[vote["First Vote"], vote["Second Vote"], vote["Third Vote"]] for vote in votes]
+    return stv_winner(ranked_votes, dinner_packages)
+
+def stv_winner(ranked_votes, candidates):
+    active_candidates = set(candidates)
     
     while True:
-        # Check if any candidate has more than half of the votes
-        for candidate, count in counts.items():
-            if count > len(votes) / 2:
-                return candidate
+        counts = Counter(vote[0] for vote in ranked_votes if vote[0] in active_candidates)
+        total_votes = sum(counts.values())
         
-        # Find the candidate with the fewest votes
+        for candidate, count in counts.items():
+            if count > total_votes / 2:
+                return candidate  # Winner found
+
         min_candidate = min(counts, key=counts.get)
         active_candidates.remove(min_candidate)
         
-        # Redistribute votes from the eliminated candidate
-        new_counts = Counter()
-        for vote in votes:
-            for candidate in vote:
-                if candidate in active_candidates:
-                    new_counts[candidate] += 1
-                    break
-        counts = new_counts
+        new_ranked_votes = []
+        for vote in ranked_votes:
+            new_vote = [c for c in vote if c in active_candidates]
+            if new_vote:
+                new_ranked_votes.append(new_vote)
+        
+        ranked_votes = new_ranked_votes
+        
+        if len(active_candidates) == 1:
+            return list(active_candidates)[0]
 
 if st.button("Calculate Winner"):
-    if st.session_state.votes:
-        winner = stv_winner(st.session_state.votes, dinner_packages)
+    if sheet.row_count > 1:  # Check if any votes have been cast
+        winner = calculate_votes()
         st.success(f"The winning dinner package is: {winner}")
         
-        # Count total first-choice votes for each dinner package
-        total_votes = Counter([vote[0] for vote in st.session_state.votes])
+        # Display first-choice votes for each candidate
+        votes = sheet.get_all_records()
+        all_votes = [vote["First Vote"] for vote in votes]
+        first_choice_counts = Counter(all_votes)
         
-        # Prepare data for bar chart
-        results_df = pd.DataFrame.from_dict(total_votes, orient='index', columns=["Votes"])
-        results_df = results_df.reindex(dinner_packages).fillna(0)  # Ensure all packages are included
+        results_df = pd.DataFrame.from_dict(first_choice_counts, orient='index', columns=["Votes"])
+        results_df = results_df.reindex(dinner_packages).fillna(0).infer_objects(copy=False)
         
-        # Display bar chart of votes
         st.bar_chart(results_df)
-        
-        # Display total votes cast
-        st.write(f"Total Votes Cast: {len(st.session_state.votes)}")
+        st.write(f"Total Votes Cast: {len(votes)}")
     else:
         st.warning("No votes have been cast yet.")
+
+# STV Explanation Display
+st.title("Single Transferable Vote (STV): Dinner Edition")
+st.write("Wondering how we pick the winning feast? Here's the STV magic in bite-sized steps:")
+
+st.markdown("""
+1. **Count the Faves**: We start with everyone's top pick.
+2. **Check for a Winner**: If any dish has over half the votes, congrats—it’s dinner!
+3. **Last Place Gets Chopped**: If no one wins, we cut the least popular dish and give those votes to the next favorite.
+4. **Repeat as Needed**: Keep chopping until we have a delicious majority!
+""")
+
